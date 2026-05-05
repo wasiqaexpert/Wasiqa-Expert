@@ -703,39 +703,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Marla Size Selection */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Marla Size (Sft per Marla)</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[272, 225].map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setProperty({ ...property, marlaSize: size })}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                        property.marlaSize === size 
-                          ? 'bg-slate-800 text-white border-slate-800' 
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                      }`}
-                    >
-                      {size} Sft
-                    </button>
-                  ))}
-                  <div className="relative">
-                    <input 
-                      type="number" 
-                      value={![272, 225].includes(property.marlaSize) ? property.marlaSize : ''}
-                      onChange={(e) => setProperty({ ...property, marlaSize: Number(e.target.value) })}
-                      placeholder="Custom"
-                      className={`w-full h-full px-3 py-2 bg-white border rounded-lg text-xs font-bold outline-none transition-all ${
-                        ![272, 225].includes(property.marlaSize)
-                          ? 'border-slate-800 ring-1 ring-slate-800' 
-                          : 'border-slate-200 hover:border-slate-400'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Area Inputs */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <div className="flex justify-between items-center mb-4">
@@ -904,6 +871,39 @@ export default function App() {
                 <div className="mt-4 flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                   <Info className="w-4 h-4 text-slate-400" />
                   <p className="text-[10px] text-slate-400 font-medium">Total DC Value based on inputs: <span className="font-bold text-slate-600">{formatCurrency(calculations.totalDcValue)}</span></p>
+                </div>
+              </div>
+
+              {/* Marla Size Selection */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Marla Size (Sft per Marla)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[272, 225].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setProperty({ ...property, marlaSize: size })}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
+                        property.marlaSize === size 
+                          ? 'bg-slate-800 text-white border-slate-800' 
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                      }`}
+                    >
+                      {size} Sft
+                    </button>
+                  ))}
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={![272, 225].includes(property.marlaSize) ? property.marlaSize : ''}
+                      onChange={(e) => setProperty({ ...property, marlaSize: Number(e.target.value) })}
+                      placeholder="Custom"
+                      className={`w-full h-full px-3 py-2 bg-white border rounded-lg text-xs font-bold outline-none transition-all ${
+                        ![272, 225].includes(property.marlaSize)
+                          ? 'border-slate-800 ring-1 ring-slate-800' 
+                          : 'border-slate-200 hover:border-slate-400'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
