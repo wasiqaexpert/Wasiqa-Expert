@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from 'motion/react';
 type FilerStatus = 'Filer' | 'Late Filer' | 'Non-Filer';
 type ResidentialStatus = 'Resident' | 'Non-Resident';
 type PropertyCategory = 'Urban' | 'Rural';
-type PropertyType = 'Agricultural' | 'Residential House' | 'Residential Plot' | 'Commercial';
+type PropertyType = 'Agricultural Land' | 'Residential House' | 'Residential Plot' | 'Commercial Plot' | 'Commercial Building';
 
 interface Person {
   id: string;
@@ -45,12 +45,14 @@ interface Person {
 interface PropertyDetails {
   category: PropertyCategory;
   type: PropertyType;
-  hasHousePlan: boolean;
-  acre: number;
-  kanal: number;
-  marla: number;
+  hasBuildingPlan: boolean;
+  acre: number | '';
+  kanal: number | '';
+  marla: number | '';
   sqft: number;
+  marlaSize: number;
   dcRatePerUnit: number;
+  dcRateUnit: 'Marla' | 'Acre';
   constructionCostPerSqft: number;
   coveredArea: number;
   declaredValue: number;
@@ -79,23 +81,25 @@ export default function App() {
   const [property, setProperty] = useState<PropertyDetails>({
     category: 'Urban',
     type: 'Residential House',
-    hasHousePlan: true,
-    acre: 0,
-    kanal: 0,
+    hasBuildingPlan: true,
+    acre: '',
+    kanal: '',
     marla: 5,
     sqft: 0,
+    marlaSize: 272,
     dcRatePerUnit: 500000,
+    dcRateUnit: 'Marla',
     constructionCostPerSqft: 2000,
     coveredArea: 1500,
     declaredValue: 0
   });
 
-  const [recipientNumber, setRecipientNumber] = useState('0301-6565038');
-  const [senderNumber, setSenderNumber] = useState('0301-6565038');
+  const [recipientNumber, setRecipientNumber] = useState('0347-7710338');
+  const [senderNumber, setSenderNumber] = useState('0347-7710338');
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
   
-  const restoreDefaultRecipient = () => setRecipientNumber('0301-6565038');
-  const restoreDefaultSender = () => setSenderNumber('0301-6565038');
+  const restoreDefaultRecipient = () => setRecipientNumber('0347-7710338');
+  const restoreDefaultSender = () => setSenderNumber('0347-7710338');
   const [isCalculated, setIsCalculated] = useState(false);
 
   // Load from session storage on mount
@@ -118,14 +122,32 @@ export default function App() {
     localStorage.setItem('registry_estimator_data', JSON.stringify({ buyers, sellers, property }));
   }, [buyers, sellers, property]);
 
+  // Adjust DC Rate Unit based on property type
+  useEffect(() => {
+    if (property.type === 'Agricultural Land') {
+      setProperty(prev => ({ ...prev, dcRateUnit: 'Acre' }));
+    } else {
+      setProperty(prev => ({ ...prev, dcRateUnit: 'Marla' }));
+    }
+  }, [property.type]);
+
   // Logic: Calculations
   const calculations = useMemo(() => {
     // 1. Total Area Units
-    const totalMarla = (property.acre * 160) + (property.kanal * 20) + property.marla + (property.sqft / 272.25);
+    const acreVal = Number(property.acre) || 0;
+    const kanalVal = Number(property.kanal) || 0;
+    const marlaVal = Number(property.marla) || 0;
+    const totalMarla = (acreVal * 160) + (kanalVal * 20) + marlaVal + (property.sqft / property.marlaSize);
     
     // 2. DC Values
-    const dcLandValue = totalMarla * property.dcRatePerUnit;
-    const dcConstructionValue = property.type === 'Residential House' ? property.coveredArea * property.constructionCostPerSqft : 0;
+    let dcLandValue = 0;
+    if (property.dcRateUnit === 'Acre') {
+      dcLandValue = (totalMarla / 160) * property.dcRatePerUnit;
+    } else {
+      dcLandValue = totalMarla * property.dcRatePerUnit;
+    }
+    
+    const dcConstructionValue = property.type === 'Residential House' || property.type === 'Commercial Building' ? property.coveredArea * property.constructionCostPerSqft : 0;
     const totalDcValue = dcLandValue + dcConstructionValue;
     
     // 3. Transaction Value (Max of Declared vs DC)
@@ -161,11 +183,11 @@ export default function App() {
       const mutationFee = 300;
       const plraMutationFee = 200;
       
-      // House Plan Surcharge (2% if No House Plan)
-      const housePlanSurcharge = (property.type === 'Residential House' && !property.hasHousePlan) ? (shareValue * 0.02) : 0;
+      // Building Plan Surcharge (2% if No Building Plan)
+      const buildingPlanSurcharge = ((property.type === 'Residential House' || property.type === 'Commercial Building') && !property.hasBuildingPlan) ? (shareValue * 0.02) : 0;
 
       // Provincial Government Expenses Sum
-      const totalProvincialExpenses = stampDuty + municipalCommitteeFee + regFee + borCharges + borOtherServiceCharges + mutationFee + plraCharges + plraMutationFee + housePlanSurcharge;
+      const totalProvincialExpenses = stampDuty + municipalCommitteeFee + regFee + borCharges + borOtherServiceCharges + mutationFee + plraCharges + plraMutationFee + buildingPlanSurcharge;
 
       // Total Buyer Gov Fees (FBR + Provincial)
       const totalGovFees = wht236K + totalProvincialExpenses;
@@ -184,7 +206,7 @@ export default function App() {
           borOtherServiceCharges,
           mutationFee,
           plraMutationFee,
-          housePlanSurcharge
+          buildingPlanSurcharge
         },
         totalGovFees
       };
@@ -279,7 +301,7 @@ export default function App() {
       setProperty({
         category: 'Urban',
         type: 'Residential House',
-        hasHousePlan: true,
+        hasBuildingPlan: true,
         acre: 0,
         kanal: 0,
         marla: 5,
@@ -654,16 +676,16 @@ export default function App() {
               {/* Category & Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
-                  <div className="flex gap-2">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Category</label>
+                  <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
                     {['Urban', 'Rural'].map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setProperty({ ...property, category: cat as PropertyCategory })}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium border transition-all ${
+                        className={`flex-1 py-1.5 px-3 rounded-md text-xs font-bold transition-all ${
                           property.category === cat 
-                            ? 'bg-accent text-white border-accent shadow-md' 
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-accent'
+                            ? 'bg-white text-primary shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700'
                         }`}
                       >
                         {cat}
@@ -672,131 +694,223 @@ export default function App() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Property Type</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Property Type</label>
                   <select 
                     value={property.type}
                     onChange={(e) => setProperty({ ...property, type: e.target.value as PropertyType })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-sm"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-sm font-medium"
                   >
                     <option value="Residential House">Residential House</option>
                     <option value="Residential Plot">Residential Plot</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Agricultural">Agricultural</option>
+                    <option value="Commercial Plot">Commercial Plot</option>
+                    <option value="Commercial Building">Commercial Building</option>
+                    <option value="Agricultural Land">Agricultural Land</option>
                   </select>
                 </div>
               </div>
 
+              {/* Marla Size Selection */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Marla Size (Sft per Marla)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[272, 225].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setProperty({ ...property, marlaSize: size })}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
+                        property.marlaSize === size 
+                          ? 'bg-slate-800 text-white border-slate-800' 
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                      }`}
+                    >
+                      {size} Sft
+                    </button>
+                  ))}
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={![272, 225].includes(property.marlaSize) ? property.marlaSize : ''}
+                      onChange={(e) => setProperty({ ...property, marlaSize: Number(e.target.value) })}
+                      placeholder="Custom"
+                      className={`w-full h-full px-3 py-2 bg-white border rounded-lg text-xs font-bold outline-none transition-all ${
+                        ![272, 225].includes(property.marlaSize)
+                          ? 'border-slate-800 ring-1 ring-slate-800' 
+                          : 'border-slate-200 hover:border-slate-400'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Area Inputs */}
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Area Breakdown</h3>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Area Breakdown</h3>
+                  <div className="flex gap-2">
+                    <div className="text-[9px] font-bold text-slate-400 px-2 py-0.5 bg-slate-200 rounded text-center">1 Kanal = 20 Marlas</div>
+                    <div className="text-[9px] font-bold text-slate-400 px-2 py-0.5 bg-slate-200 rounded text-center">1 Acre = 8 Kanals</div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {property.type === 'Agricultural' && (
+                  {(property.type === 'Agricultural Land') && (
                     <>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">Acre</label>
+                        <label className="block text-[10px] font-black text-slate-500 mb-1 uppercase">Acre</label>
                         <input 
-                          type="number" 
-                          value={property.acre}
-                          onChange={(e) => setProperty({ ...property, acre: Number(e.target.value) })}
-                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent"
+                          type="text" 
+                          inputMode="numeric"
+                          value={property.acre === 0 || property.acre === '' ? '' : property.acre}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*$/.test(val)) {
+                              setProperty({ ...property, acre: val === '' ? '' : Number(val) });
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="0"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">Kanal</label>
+                        <label className="block text-[10px] font-black text-slate-500 mb-1 uppercase">Kanal</label>
                         <input 
-                          type="number" 
-                          value={property.kanal}
-                          onChange={(e) => setProperty({ ...property, kanal: Number(e.target.value) })}
-                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent"
+                          type="text" 
+                          inputMode="numeric"
+                          value={property.kanal === 0 || property.kanal === '' ? '' : property.kanal}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*$/.test(val)) {
+                              setProperty({ ...property, kanal: val === '' ? '' : Number(val) });
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="0"
                         />
                       </div>
                     </>
                   )}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">Marla</label>
+                    <label className="block text-[10px] font-black text-slate-500 mb-1 uppercase">Marla</label>
                     <input 
-                      type="number" 
-                      value={property.marla}
-                      onChange={(e) => setProperty({ ...property, marla: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent"
+                      type="text" 
+                      inputMode="numeric"
+                      value={property.marla === 0 || property.marla === '' ? '' : property.marla}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setProperty({ ...property, marla: val === '' ? '' : Number(val) });
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder="0"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">Sqft</label>
+                    <label className="block text-[10px] font-black text-slate-500 mb-1 uppercase">Sqft</label>
                     <input 
                       type="number" 
-                      value={property.sqft}
+                      value={property.sqft === 0 ? '' : property.sqft}
                       onChange={(e) => setProperty({ ...property, sqft: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent font-bold placeholder:font-normal"
+                      placeholder="0"
                     />
                   </div>
                 </div>
               </div>
 
               {/* DC Values & Cost */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">DC Rate (per Marla)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-slate-400 text-sm">Rs.</span>
-                    <input 
-                      type="number" 
-                      value={property.dcRatePerUnit}
-                      onChange={(e) => setProperty({ ...property, dcRatePerUnit: Number(e.target.value) })}
-                      className="w-full pl-10 pr-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent shadow-sm"
-                    />
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 text-primary">DC Rate Unit</label>
+                    <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                      {(['Marla', 'Acre'] as const).map((unit) => (
+                        <button
+                          key={unit}
+                          onClick={() => setProperty({ ...property, dcRateUnit: unit })}
+                          className={`flex-1 py-1.5 px-3 rounded-md text-[10px] font-bold transition-all ${
+                            property.dcRateUnit === unit 
+                              ? 'bg-white text-primary shadow-sm' 
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          DC Rate (Per {unit})
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                {property.type === 'Residential House' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Covered Area (Sqft)</label>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">DC Rate (Rs. per {property.dcRateUnit})</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-slate-400 text-sm">Rs.</span>
                       <input 
                         type="number" 
-                        value={property.coveredArea}
-                        onChange={(e) => setProperty({ ...property, coveredArea: Number(e.target.value) })}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent shadow-sm"
+                        value={property.dcRatePerUnit === 0 ? '' : property.dcRatePerUnit}
+                        onChange={(e) => setProperty({ ...property, dcRatePerUnit: Number(e.target.value) })}
+                        className="w-full pl-10 pr-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent shadow-sm font-bold"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {(property.type === 'Residential House' || property.type === 'Commercial Building') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">House Plan Approved?</label>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Covered Area (Sqft)</label>
+                      <input 
+                        type="number" 
+                        value={property.coveredArea === 0 ? '' : property.coveredArea}
+                        onChange={(e) => setProperty({ ...property, coveredArea: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm outline-none focus:border-accent shadow-sm font-bold"
+                        placeholder="0"
+                      />
+                    </div>
+                    {(property.type === 'Residential House' || property.type === 'Commercial Building') && (
+                      <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Building Plan Approved?</label>
                       <div className="flex gap-2">
                         {[true, false].map((val) => (
                           <button
                             key={String(val)}
-                            onClick={() => setProperty({ ...property, hasHousePlan: val })}
-                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium border transition-all ${
-                              property.hasHousePlan === val 
-                                ? 'bg-slate-800 text-white border-slate-800' 
-                                : 'bg-white text-slate-600 border-slate-200'
+                            onClick={() => setProperty({ ...property, hasBuildingPlan: val })}
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-bold border transition-all ${
+                              property.hasBuildingPlan === val 
+                                ? 'bg-slate-800 text-white border-slate-800 shadow-md' 
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                             }`}
                           >
                             {val ? 'Yes' : 'No (2% Fee)'}
                           </button>
                         ))}
                       </div>
-                    </div>
-                  </>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
               {/* Declared Value */}
-              <div className="pt-4 border-t border-slate-100">
-                <label className="block text-sm font-bold text-primary mb-2">Market / Declared Transaction Value</label>
+              <div className="pt-6 border-t border-slate-100">
+                <label className="block text-xs font-black text-primary mb-3 uppercase tracking-widest flex items-center gap-2">
+                  Market / Declared Transaction Value
+                  <div className="h-px bg-slate-100 flex-1"></div>
+                </label>
                 <div className="relative max-w-md">
-                  <span className="absolute left-3 top-3 text-accent font-bold">Rs.</span>
+                  <span className="absolute left-4 top-3.5 text-accent font-black text-xl">Rs.</span>
                   <input 
                     type="number" 
                     value={property.declaredValue === 0 ? '' : property.declaredValue}
-                    onChange={(e) => setProperty({ ...property, declaredValue: e.target.value === '' ? 0 : Number(e.target.value) })}
-                    className="w-full pl-10 pr-4 py-3 bg-accent/5 border-2 border-accent/20 rounded-xl text-lg font-bold text-primary outline-none focus:border-accent focus:ring-0 transition-all shadow-inner"
+                    onChange={(e) => setProperty({ ...property, declaredValue: Number(e.target.value) })}
+                    className="w-full pl-14 pr-4 py-4 bg-accent/5 border-2 border-accent/20 rounded-2xl text-2xl font-black text-primary outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all shadow-inner"
                     placeholder="Enter selling price"
                   />
-                  <div className="absolute right-3 top-3.5">
-                    <CheckCircle2 className="w-5 h-5 text-accent opacity-50" />
+                  <div className="absolute right-4 top-4">
+                    <CheckCircle2 className="w-6 h-6 text-accent opacity-50" />
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-slate-400">Total DC Value based on inputs: <span className="font-semibold text-slate-600">{formatCurrency(calculations.totalDcValue)}</span></p>
+                <div className="mt-4 flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <Info className="w-4 h-4 text-slate-400" />
+                  <p className="text-[10px] text-slate-400 font-medium">Total DC Value based on inputs: <span className="font-bold text-slate-600">{formatCurrency(calculations.totalDcValue)}</span></p>
+                </div>
               </div>
             </div>
           </section>
@@ -967,7 +1081,7 @@ export default function App() {
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Recipient No.</label>
                   </div>
-                  {recipientNumber !== '0301-6565038' && (
+                  {recipientNumber !== '0347-7710338' && (
                     <button 
                       onClick={restoreDefaultRecipient}
                       className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors"
@@ -1020,7 +1134,7 @@ export default function App() {
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sender Number</label>
                   </div>
-                  {senderNumber !== '0301-6565038' && (
+                  {senderNumber !== '0347-7710338' && (
                     <button 
                       onClick={restoreDefaultSender}
                       className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors"
