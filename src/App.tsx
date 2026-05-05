@@ -202,7 +202,7 @@ export default function App() {
       // Fixed/Dynamic Fees (Pro-rated by share)
       const regFee = shareValue < 500000 ? 500 : 1000;
       const borCharges = 100;
-      const plraCharges = shareValue <= 3000000 ? 3300 : (3300 + (shareValue * 0.001));
+      const plraCharges = Math.max(3300, shareValue * 0.001);
       const borOtherServiceCharges = 100;
       const mutationFee = 300;
       const plraMutationFee = 200;
