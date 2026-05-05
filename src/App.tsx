@@ -970,6 +970,12 @@ export default function App() {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm py-1">
+                      <span className="text-slate-500 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent"></div> 7E Tax (Seller)</span>
+                      <span className="font-semibold text-slate-700">
+                        {formatCurrency(calculations.sellerExpenses.reduce((a, b) => a + b.tax7E, 0))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent"></div> Provincial Govt. Expenses</span>
                       <span className="font-semibold text-slate-700">
                         {formatCurrency(calculations.buyerExpenses.reduce((a, b) => a + b.totalProvincialExpenses, 0))}
@@ -977,12 +983,6 @@ export default function App() {
                     </div>
                     <div className="flex justify-between text-sm py-1 ml-4 border-l border-slate-100 pl-3">
                       <span className="text-xs text-slate-400">Includes SD, MC Fee, Reg, BOR, PLRA, etc.</span>
-                    </div>
-                    <div className="flex justify-between text-sm py-1">
-                      <span className="text-slate-500 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent"></div> 7E Tax (Seller)</span>
-                      <span className="font-semibold text-slate-700">
-                        {formatCurrency(calculations.sellerExpenses.reduce((a, b) => a + b.tax7E, 0))}
-                      </span>
                     </div>
                   </div>
 
