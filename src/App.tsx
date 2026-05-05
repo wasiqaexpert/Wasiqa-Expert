@@ -90,8 +90,12 @@ export default function App() {
     declaredValue: 0
   });
 
-  const [whatsappNumber, setWhatsappNumber] = useState('0301-6565038');
+  const [recipientNumber, setRecipientNumber] = useState('0301-6565038');
+  const [senderNumber, setSenderNumber] = useState('0301-6565038');
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
+  
+  const restoreDefaultRecipient = () => setRecipientNumber('0301-6565038');
+  const restoreDefaultSender = () => setSenderNumber('0301-6565038');
   const [isCalculated, setIsCalculated] = useState(false);
 
   // Load from session storage on mount
@@ -300,18 +304,18 @@ export default function App() {
             `- Other Charges: ${formatCurrency(calculations.totalOtherExpenses)}\n` +
             `--------------------------\n` +
             `*Grand Total: ${formatCurrency(calculations.grandTotal)}*\n\n` +
-            `Thank you for trusting Wasiqa Expert.`;
+            `Regards,\nWasiqa Expert\nContact: ${senderNumber}\nThank you for trusting us.`;
     } else if (person) {
       const isBuyer = buyers.some(b => b.id === person.id);
       const amount = isBuyer 
         ? calculations.buyerExpenses.find(b => b.id === person.id)?.totalGovFees 
         : calculations.sellerExpenses.find(s => s.id === person.id)?.wht236C;
       
-      msg = `Dear Mr. ${person.name},\n\nThank you for trusting us with your property documentation. \n\nYour individual share for the registry expenses is: *${formatCurrency(amount || 0)}*.\n\nTotal Transaction Summary:\nTransaction Value: ${formatCurrency(calculations.transactionValue)}\n\nPlease feel free to contact us for further details.`;
+      msg = `Dear Mr. ${person.name},\n\nThank you for trusting us with your property documentation. \n\nYour individual share for the registry expenses is: *${formatCurrency(amount || 0)}*.\n\nTotal Transaction Summary:\nTransaction Value: ${formatCurrency(calculations.transactionValue)}\n\nPlease feel free to contact us for further details.\n\nRegards,\nWasiqa Expert\nContact: ${senderNumber}`;
     }
     
-    const targetNumber = whatsappNumber.replace(/[^0-9]/g, '');
-    const url = `https://wa.me/${targetNumber}?text=${encodeURIComponent(msg)}`;
+    const target = recipientNumber.replace(/[^0-9]/g, '');
+    const url = `https://wa.me/${target}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   };
 
@@ -955,51 +959,87 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end bg-slate-800/30 p-8 lg:p-10 rounded-[2rem] border border-slate-700/50 backdrop-blur-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end bg-slate-800/30 p-6 lg:p-10 rounded-[2rem] border border-slate-700/50 backdrop-blur-sm">
               {/* Step 1: Recipient Number */}
-              <div className="lg:col-span-4 space-y-4">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Recipient Number</label>
+              <div className="lg:col-span-3 space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Recipient No.</label>
+                  </div>
+                  {recipientNumber !== '0301-6565038' && (
+                    <button 
+                      onClick={restoreDefaultRecipient}
+                      className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
                 </div>
                 <div className="relative group">
                   <input 
                     type="text" 
-                    value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    className="w-full px-6 py-5 bg-slate-900 border-2 border-slate-700 rounded-2xl text-2xl font-bold focus:ring-8 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all placeholder:text-slate-800 group-hover:border-slate-600"
+                    value={recipientNumber}
+                    onChange={(e) => setRecipientNumber(e.target.value)}
+                    className="w-full px-5 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl text-xl font-bold focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all placeholder:text-slate-800/40 group-hover:border-slate-600"
                     placeholder="e.g. 03001234567"
                   />
                 </div>
               </div>
 
               {/* Step 2: Select Report Type */}
-              <div className="lg:col-span-5 space-y-4">
+              <div className="lg:col-span-3 space-y-4">
                 <div className="flex items-center gap-2 px-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                  <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Select Report / Client</label>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Select Report / Client</label>
                 </div>
                 <div className="relative group">
                   <select 
                     value={selectedPersonId}
                     onChange={(e) => setSelectedPersonId(e.target.value)}
-                    className="w-full px-6 py-5 bg-slate-900 border-2 border-slate-700 rounded-2xl text-xl font-bold focus:ring-8 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all appearance-none cursor-pointer group-hover:border-slate-600"
+                    className="w-full px-5 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all appearance-none cursor-pointer group-hover:border-slate-600"
                   >
-                    <option value="">Full Transaction Summary Report</option>
-                    <optgroup label="Send Individual Share Slip to Buying Party">
-                      {buyers.map(b => <option key={b.id} value={b.id}>{b.name} (Buyer)</option>)}
+                    <option value="">Full Summary Report</option>
+                    <optgroup label="Buyer Share Slips">
+                      {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </optgroup>
-                    <optgroup label="Send Individual Share Slip to Selling Party">
-                      {sellers.map(s => <option key={s.id} value={s.id}>{s.name} (Seller)</option>)}
+                    <optgroup label="Seller Share Slips">
+                      {sellers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </optgroup>
                   </select>
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                    <ChevronDown className="w-6 h-6" />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                    <ChevronDown className="w-5 h-5" />
                   </div>
                 </div>
               </div>
 
-              {/* Step 3: Action Button */}
+              {/* Step 3: Sender Number */}
+              <div className="lg:col-span-3 space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sender Number</label>
+                  </div>
+                  {senderNumber !== '0301-6565038' && (
+                    <button 
+                      onClick={restoreDefaultSender}
+                      className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="relative group">
+                  <input 
+                    type="text" 
+                    value={senderNumber}
+                    onChange={(e) => setSenderNumber(e.target.value)}
+                    className="w-full px-5 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl text-xl font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all group-hover:border-slate-600"
+                  />
+                </div>
+              </div>
+
+              {/* Step 4: Action Button */}
               <div className="lg:col-span-3">
                 <button 
                   onClick={() => {
@@ -1010,10 +1050,11 @@ export default function App() {
                       generateWhatsAppMessage('total');
                     }
                   }}
-                  className="w-full px-8 py-5 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black text-xl flex items-center justify-center gap-4 transition-all shadow-3xl shadow-green-900/60 active:scale-[0.97] hover:shadow-green-500/10 group"
+                  disabled={!recipientNumber}
+                  className="w-full px-6 py-4 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:grayscale text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.97] group"
                 >
-                  <ExternalLink className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  Generate & Send
+                  <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  Send Report
                 </button>
               </div>
             </div>
