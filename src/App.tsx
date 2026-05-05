@@ -109,9 +109,9 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setBuyers(parsed.buyers);
-        setSellers(parsed.sellers);
-        setProperty(parsed.property);
+        if (parsed.buyers) setBuyers(parsed.buyers);
+        if (parsed.sellers) setSellers(parsed.sellers);
+        if (parsed.property) setProperty(prev => ({ ...prev, ...parsed.property }));
       } catch (e) {
         console.error("Failed to load saved data", e);
       }
@@ -138,25 +138,33 @@ export default function App() {
     const acreVal = Number(property.acre) || 0;
     const kanalVal = Number(property.kanal) || 0;
     const marlaVal = Number(property.marla) || 0;
-    const totalMarla = (acreVal * 160) + (kanalVal * 20) + marlaVal + (property.sqft / property.marlaSize);
+    const sqftVal = Number(property.sqft) || 0;
+    const marlaSizeVal = Number(property.marlaSize) || 272; // Default to 272 if 0 or NaN
+    
+    const totalMarla = (acreVal * 160) + (kanalVal * 20) + marlaVal + (sqftVal / marlaSizeVal);
     
     // 2. DC Values
     let dcLandValue = 0;
+    const dcRate = Number(property.dcRatePerUnit) || 0;
     if (property.dcRateUnit === 'Acre') {
-      dcLandValue = (totalMarla / 160) * property.dcRatePerUnit;
+      dcLandValue = (totalMarla / 160) * dcRate;
     } else {
-      dcLandValue = totalMarla * property.dcRatePerUnit;
+      dcLandValue = totalMarla * dcRate;
     }
     
-    const dcConstructionValue = property.type === 'Residential House' || property.type === 'Commercial Building' ? property.coveredArea * property.constructionCostPerSqft : 0;
-    const totalDcValue = dcLandValue + dcConstructionValue;
+    const coveredAreaVal = Number(property.coveredArea) || 0;
+    const constCostVal = Number(property.constructionCostPerSqft) || 0;
+    const dcConstructionValue = (property.type === 'Residential House' || property.type === 'Commercial Building') ? coveredAreaVal * constCostVal : 0;
+    const totalDcValue = (dcLandValue || 0) + (dcConstructionValue || 0);
     
     // 3. Transaction Value (Max of Declared vs DC)
-    const transactionValue = Math.max(property.declaredValue, totalDcValue);
+    const declaredValueVal = Number(property.declaredValue) || 0;
+    const transactionValue = Math.max(declaredValueVal, totalDcValue || 0);
 
     // 4. Buyer Detailed Expenses
     const buyerExpenses = buyers.map(buyer => {
-      const shareValue = (transactionValue * buyer.share) / 100;
+      const share = Number(buyer.share) || 0;
+      const shareValue = (transactionValue * share) / 100;
       
       // 236K Withholding Tax (Buyer)
       let whtRate = 0;
@@ -215,7 +223,8 @@ export default function App() {
 
     // 5. Seller Detailed Expenses
     const sellerExpenses = sellers.map(seller => {
-      const shareValue = (transactionValue * seller.share) / 100;
+      const share = Number(seller.share) || 0;
+      const shareValue = (transactionValue * share) / 100;
 
       // 236C Withholding Tax (Seller)
       let whtRate = 0;
@@ -243,24 +252,24 @@ export default function App() {
     const totalOtherExpenses = patwariVisit + additionalCharges + draftingCharges;
 
     // Totals
-    const totalBuyerExpenses = buyerExpenses.reduce((acc, curr) => acc + curr.totalGovFees, 0);
-    const totalSellerExpenses = sellerExpenses.reduce((acc, curr) => acc + curr.wht236C + curr.tax7E, 0);
-    const grandTotal = totalBuyerExpenses + totalSellerExpenses + totalOtherExpenses;
+    const totalBuyerExpenses = buyerExpenses.reduce((acc, curr) => acc + (curr.totalGovFees || 0), 0);
+    const totalSellerExpenses = sellerExpenses.reduce((acc, curr) => acc + (curr.wht236C || 0) + (curr.tax7E || 0), 0);
+    const grandTotal = (totalBuyerExpenses || 0) + (totalSellerExpenses || 0) + (totalOtherExpenses || 0);
 
     return {
-      dcLandValue,
-      dcConstructionValue,
-      totalDcValue,
-      transactionValue,
+      dcLandValue: dcLandValue || 0,
+      dcConstructionValue: dcConstructionValue || 0,
+      totalDcValue: totalDcValue || 0,
+      transactionValue: transactionValue || 0,
       buyerExpenses,
       sellerExpenses,
       patwariVisit,
-      additionalCharges,
+      additionalCharges: additionalCharges || 0,
       draftingCharges,
-      totalOtherExpenses,
-      totalBuyerExpenses,
-      totalSellerExpenses,
-      grandTotal
+      totalOtherExpenses: totalOtherExpenses || 0,
+      totalBuyerExpenses: totalBuyerExpenses || 0,
+      totalSellerExpenses: totalSellerExpenses || 0,
+      grandTotal: grandTotal || 0
     };
   }, [buyers, sellers, property]);
 
