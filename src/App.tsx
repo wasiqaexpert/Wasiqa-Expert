@@ -21,7 +21,9 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -100,7 +102,6 @@ export default function App() {
   
   const restoreDefaultRecipient = () => setRecipientNumber('0347-7710338');
   const restoreDefaultSender = () => setSenderNumber('0347-7710338');
-  const [isCalculated, setIsCalculated] = useState(false);
 
   // Load from session storage on mount
   useEffect(() => {
@@ -1059,133 +1060,80 @@ export default function App() {
         </div>
       </main>
 
-      {/* WhatsApp Section - Full Width Bottom */}
-      <div className="max-w-7xl mx-auto w-full p-4 lg:p-8 no-print">
-        <section className="bg-slate-900 rounded-3xl shadow-2xl overflow-hidden text-white border border-slate-800">
-          <div className="p-8 lg:p-14">
-            <div className="flex flex-col lg:flex-row items-center gap-10 mb-12">
-              <div className="p-6 bg-green-500 rounded-[2.5rem] shadow-2xl shadow-green-500/20 -rotate-6 transition-transform hover:rotate-0 duration-500">
-                <MessageSquare className="w-12 h-12 text-white" />
-              </div>
-              <div className="text-center lg:text-left space-y-2">
-                <h2 className="text-4xl font-black tracking-tighter">WhatsApp Report Sharing</h2>
-                <p className="text-slate-400 font-medium text-xl leading-relaxed max-w-2xl">Effortlessly share professional registration cost estimates and individual buyer/seller share slips with your clients directly via WhatsApp.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end bg-slate-800/30 p-6 lg:p-10 rounded-[2rem] border border-slate-700/50 backdrop-blur-sm">
-              {/* Step 1: Recipient Number */}
-              <div className="lg:col-span-3 space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Recipient No.</label>
+      {/* Short Message Report Section */}
+      {calculations.transactionValue > 0 && (
+        <div className="max-w-7xl mx-auto w-full p-4 lg:p-8 no-print">
+          <section className="bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-800">
+            <div className="p-8 lg:p-12 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+              
+              <div className="relative z-10">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-8">
+                  <div>
+                    <h2 className="text-3xl font-black text-white tracking-tighter flex items-center gap-3">
+                      <div className="w-2 h-8 bg-accent rounded-full"></div>
+                      Short Message Report
+                    </h2>
+                    <p className="text-slate-400 mt-2 text-lg">Quick-copy summary for easy sharing through SMS or Messenger</p>
                   </div>
-                  {recipientNumber !== '0347-7710338' && (
-                    <button 
-                      onClick={restoreDefaultRecipient}
-                      className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    value={recipientNumber}
-                    onChange={(e) => setRecipientNumber(e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl text-xl font-bold focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all placeholder:text-slate-800/40 group-hover:border-slate-600"
-                    placeholder="e.g. 03001234567"
-                  />
-                </div>
-              </div>
-
-              {/* Step 2: Select Report Type */}
-              <div className="lg:col-span-3 space-y-4">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Select Report / Client</label>
-                </div>
-                <div className="relative group">
-                  <select 
-                    value={selectedPersonId}
-                    onChange={(e) => setSelectedPersonId(e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl text-lg font-bold focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all appearance-none cursor-pointer group-hover:border-slate-600"
+                  
+                  <button 
+                    onClick={() => {
+                      const msg = `Grand Total Expenses: ${formatCurrency(calculations.grandTotal)}\n` +
+                                `Buyer Expenses: ${formatCurrency(calculations.totalBuyerExpenses)}\n` +
+                                `Seller Expenses: ${formatCurrency(calculations.totalSellerExpenses)}\n\n` +
+                                `Regards, Wasiqa Expert\n` +
+                                `Thank you for trusting us.`;
+                      
+                      navigator.clipboard.writeText(msg).then(() => {
+                        const btn = document.getElementById('copy-msg-btn');
+                        if (btn) {
+                          const originalContent = btn.innerHTML;
+                          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg> Copied!`;
+                          btn.classList.add('bg-green-600', 'border-green-700');
+                          btn.classList.remove('bg-accent', 'border-accent-dark');
+                          setTimeout(() => {
+                            btn.innerHTML = originalContent;
+                            btn.classList.remove('bg-green-600', 'border-green-700');
+                            btn.classList.add('bg-accent', 'border-accent-dark');
+                          }, 2000);
+                        }
+                      });
+                    }}
+                    id="copy-msg-btn"
+                    className="flex items-center justify-center gap-3 px-8 py-5 bg-accent hover:bg-accent/90 text-white rounded-2xl font-black text-xl transition-all active:scale-[0.98] shadow-xl shadow-accent/20 border-b-4 border-accent-dark"
                   >
-                    <option value="">Full Summary Report</option>
-                    <optgroup label="Buyer Share Slips">
-                      {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </optgroup>
-                    <optgroup label="Seller Share Slips">
-                      {sellers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </optgroup>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                    <ChevronDown className="w-5 h-5" />
+                    <Copy className="w-6 h-6" />
+                    Copy Message
+                  </button>
+                </div>
+
+                <div className="bg-slate-950 border border-slate-800 rounded-3xl p-8 lg:p-10 font-mono shadow-inner group">
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
+                      <span className="text-slate-500 text-xs font-black uppercase tracking-[0.2em] md:w-56">Grand Total Expenses:</span>
+                      <span className="text-accent text-2xl font-bold">{formatCurrency(calculations.grandTotal)}</span>
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
+                      <span className="text-slate-500 text-xs font-black uppercase tracking-[0.2em] md:w-56">Buyer Expenses:</span>
+                      <span className="text-white text-xl font-bold">{formatCurrency(calculations.totalBuyerExpenses)}</span>
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
+                      <span className="text-slate-500 text-xs font-black uppercase tracking-[0.2em] md:w-56">Seller Expenses:</span>
+                      <span className="text-white text-xl font-bold">{formatCurrency(calculations.totalSellerExpenses)}</span>
+                    </div>
+                    
+                    <div className="pt-8 border-t border-slate-800/50 mt-8">
+                      <p className="text-slate-400 text-lg leading-relaxed">Regards, Wasiqa Expert</p>
+                      <p className="text-slate-500 text-lg">Thank you for trusting us.</p>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* Step 3: Sender Number */}
-              <div className="lg:col-span-3 space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sender Number</label>
-                  </div>
-                  {senderNumber !== '0347-7710338' && (
-                    <button 
-                      onClick={restoreDefaultSender}
-                      className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    value={senderNumber}
-                    onChange={(e) => setSenderNumber(e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl text-xl font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all group-hover:border-slate-600"
-                  />
-                </div>
-              </div>
-
-              {/* Step 4: Action Button */}
-              <div className="lg:col-span-3">
-                <button 
-                  onClick={() => {
-                    if (selectedPersonId) {
-                      const person = [...buyers, ...sellers].find(p => p.id === selectedPersonId);
-                      if (person) generateWhatsAppMessage('individual', person);
-                    } else {
-                      generateWhatsAppMessage('total');
-                    }
-                  }}
-                  disabled={!recipientNumber}
-                  className="w-full px-6 py-4 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:grayscale text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.97] group"
-                >
-                  <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  Send Report
-                </button>
-              </div>
             </div>
-
-            <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-slate-500 border-t border-slate-800/80 pt-10">
-              <div className="flex items-center gap-4 py-2 px-5 bg-white/5 rounded-full border border-white/5">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                <span className="font-bold opacity-80 uppercase tracking-[0.25em] text-[10px] text-green-500">Professional Report Gateway Active</span>
-              </div>
-              <p className="italic text-slate-500 text-center md:text-right max-w-md">Your professional report will be automatically encoded and opened in your default WhatsApp application for secure delivery.</p>
-            </div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 p-6 text-center text-slate-400 text-xs font-medium no-print">
