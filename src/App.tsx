@@ -104,6 +104,7 @@ export default function App() {
   const [patwariVisitAmount, setPatwariVisitAmount] = useState(8000);
   const [draftingChargesAmount, setDraftingChargesAmount] = useState(10000);
   const [serviceChargesPercent, setServiceChargesPercent] = useState(1);
+  const [manualServiceCharges, setManualServiceCharges] = useState<number | null>(null);
   
   const restoreDefaultRecipient = () => setRecipientNumber('0347-7710338');
   const restoreDefaultSender = () => setSenderNumber('0347-7710338');
@@ -120,6 +121,7 @@ export default function App() {
         if (parsed.patwariVisitAmount) setPatwariVisitAmount(parsed.patwariVisitAmount);
         if (parsed.draftingChargesAmount) setDraftingChargesAmount(parsed.draftingChargesAmount);
         if (parsed.serviceChargesPercent) setServiceChargesPercent(parsed.serviceChargesPercent);
+        if (parsed.manualServiceCharges !== undefined) setManualServiceCharges(parsed.manualServiceCharges);
       } catch (e) {
         console.error("Failed to load saved data", e);
       }
@@ -134,9 +136,10 @@ export default function App() {
       property,
       patwariVisitAmount,
       draftingChargesAmount,
-      serviceChargesPercent
+      serviceChargesPercent,
+      manualServiceCharges
     }));
-  }, [buyers, sellers, property, patwariVisitAmount, draftingChargesAmount, serviceChargesPercent]);
+  }, [buyers, sellers, property, patwariVisitAmount, draftingChargesAmount, serviceChargesPercent, manualServiceCharges]);
 
   // Adjust DC Rate Unit based on property type
   useEffect(() => {
@@ -262,7 +265,8 @@ export default function App() {
 
     // 6. Global "Other" Expenses (Standard across transaction)
     const patwariVisit = Number(patwariVisitAmount) || 0;
-    const additionalCharges = transactionValue * (serviceChargesPercent / 100);
+    const calcAdditionalCharges = transactionValue * (serviceChargesPercent / 100);
+    const additionalCharges = manualServiceCharges !== null ? manualServiceCharges : calcAdditionalCharges;
     const draftingCharges = Number(draftingChargesAmount) || 0;
     const totalOtherExpenses = patwariVisit + additionalCharges + draftingCharges;
 
@@ -298,9 +302,10 @@ export default function App() {
       totalBuyerExpenses: totalBuyerExpenses || 0,
       totalSellerExpenses: totalSellerExpenses || 0,
       grandTotal: grandTotal || 0,
-      provBreakdown
+      provBreakdown,
+      calcAdditionalCharges
     };
-  }, [buyers, sellers, property, patwariVisitAmount, draftingChargesAmount, serviceChargesPercent]);
+  }, [buyers, sellers, property, patwariVisitAmount, draftingChargesAmount, serviceChargesPercent, manualServiceCharges]);
 
   // Handlers
   const addBuyer = () => {
@@ -354,6 +359,7 @@ export default function App() {
       setPatwariVisitAmount(8000);
       setDraftingChargesAmount(10000);
       setServiceChargesPercent(1);
+      setManualServiceCharges(null);
     }
   };
 
@@ -1031,21 +1037,28 @@ export default function App() {
                         <span>PLRA Service Charges</span>
                         <span>{formatCurrency(calculations.provBreakdown.plraCharges)}</span>
                       </div>
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>BOR Charges</span>
+                        <span>{formatCurrency(calculations.provBreakdown.borCharges)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>BOR Other Service Charges</span>
+                        <span>{formatCurrency(calculations.provBreakdown.borOtherServiceCharges)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>Mutation Fee</span>
+                        <span>{formatCurrency(calculations.provBreakdown.mutationFee)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-slate-400">
+                        <span>PLRA Mutation Fee</span>
+                        <span>{formatCurrency(calculations.provBreakdown.plraMutationFee)}</span>
+                      </div>
                       {calculations.provBreakdown.buildingPlanSurcharge > 0 && (
                         <div className="flex justify-between text-[11px] text-red-400 font-medium">
                           <span>Building Plan Surcharge (2%)</span>
                           <span>{formatCurrency(calculations.provBreakdown.buildingPlanSurcharge)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-[11px] text-slate-400 italic">
-                        <span>Mutation, BOR & Other Fees</span>
-                        <span>{formatCurrency(
-                          calculations.provBreakdown.borCharges + 
-                          calculations.provBreakdown.borOtherServiceCharges + 
-                          calculations.provBreakdown.mutationFee + 
-                          calculations.provBreakdown.plraMutationFee
-                        )}</span>
-                      </div>
                     </div>
                   </div>
 
@@ -1066,18 +1079,24 @@ export default function App() {
                     
                     <div className="flex justify-between items-center group">
                       <div className="space-y-0.5">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Service Charges</span>
-                        <div className="flex items-center gap-1">
-                          <input 
-                            type="number"
-                            value={serviceChargesPercent}
-                            onChange={(e) => setServiceChargesPercent(Number(e.target.value))}
-                            className="w-10 p-0 text-[10px] font-black text-accent bg-transparent border-none focus:ring-0 text-center"
-                          />
-                          <span className="text-[10px] font-bold text-slate-400">%</span>
-                        </div>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-tight italic">EXECUTIVE SERVICE CHARGES ({serviceChargesPercent}%)</span>
                       </div>
-                      <span className="font-semibold text-slate-700 text-sm">{formatCurrency(calculations.additionalCharges)}</span>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">Rs.</span>
+                        <input 
+                          type="number"
+                          value={manualServiceCharges === 0 ? '' : (manualServiceCharges ?? Math.round(calculations.calcAdditionalCharges))}
+                          onChange={(e) => setManualServiceCharges(Number(e.target.value))}
+                          onBlur={() => {
+                            if (manualServiceCharges === Math.round(calculations.calcAdditionalCharges)) {
+                              setManualServiceCharges(null);
+                            }
+                          }}
+                          className={`w-28 pl-7 pr-2 py-1.5 bg-slate-50 border rounded-lg text-xs font-bold focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none text-right transition-all group-hover:bg-white ${
+                            manualServiceCharges !== null ? 'text-accent border-accent/30' : 'text-slate-700 border-slate-200'
+                          }`}
+                        />
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center group">
