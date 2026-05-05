@@ -315,31 +315,24 @@ export default function App() {
     }
   };
 
-  const generateWhatsAppMessage = (type: 'total' | 'individual', person?: Person) => {
-    let msg = "";
-    if (type === 'total') {
-      msg = `*Registry Expense Estimator - Detailed Report*\n\n` +
-            `Address: ${property.category} Area\n` +
-            `Property: ${property.type}\n` +
-            `Transaction Value: ${formatCurrency(calculations.transactionValue)}\n\n` +
-            `*Expenses Summary:*\n` +
-            `- Govt. Fees: ${formatCurrency(calculations.totalBuyerExpenses + calculations.totalSellerExpenses)}\n` +
-            `- Other Charges: ${formatCurrency(calculations.totalOtherExpenses)}\n` +
-            `--------------------------\n` +
-            `*Grand Total: ${formatCurrency(calculations.grandTotal)}*\n\n` +
-            `Regards,\nWasiqa Expert\nContact: ${senderNumber}\nThank you for trusting us.`;
-    } else if (person) {
-      const isBuyer = buyers.some(b => b.id === person.id);
-      const amount = isBuyer 
-        ? calculations.buyerExpenses.find(b => b.id === person.id)?.totalGovFees 
-        : calculations.sellerExpenses.find(s => s.id === person.id)?.wht236C;
-      
-      msg = `Dear Mr. ${person.name},\n\nThank you for trusting us with your property documentation. \n\nYour individual share for the registry expenses is: *${formatCurrency(amount || 0)}*.\n\nTotal Transaction Summary:\nTransaction Value: ${formatCurrency(calculations.transactionValue)}\n\nPlease feel free to contact us for further details.\n\nRegards,\nWasiqa Expert\nContact: ${senderNumber}`;
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyIndividualSlip = (person: Person) => {
+    const isBuyer = buyers.some(b => b.id === person.id);
+    let amount = 0;
+    if (isBuyer) {
+      amount = calculations.buyerExpenses.find(b => b.id === person.id)?.totalGovFees || 0;
+    } else {
+      const s = calculations.sellerExpenses.find(s => s.id === person.id);
+      amount = (s?.wht236C || 0) + (s?.tax7E || 0);
     }
     
-    const target = recipientNumber.replace(/[^0-9]/g, '');
-    const url = `https://wa.me/${target}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    const msg = `Dear Mr. / Mrs. ${person.name},\n\nYour individual share for the registry expenses is: *${formatCurrency(amount)}*.\n\nRegards, Wasiqa Expert\nThank you for trusting us.`;
+    
+    navigator.clipboard.writeText(msg).then(() => {
+      setCopiedId(person.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
   };
 
   return (
@@ -1008,36 +1001,52 @@ export default function App() {
                     {buyers.map(b => (
                       <button 
                         key={b.id}
-                        onClick={() => generateWhatsAppMessage('individual', b)}
-                        className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-green-500 group transition-all"
+                        onClick={() => copyIndividualSlip(b)}
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all group ${
+                          copiedId === b.id 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-slate-50 border-slate-200 hover:border-accent hover:bg-white active:scale-[0.98]'
+                        }`}
                       >
                         <div className="text-left">
-                          <p className="text-xs font-bold text-slate-700">{b.name} (Buyer)</p>
-                          <p className="text-[10px] text-slate-400">Send slip via WhatsApp</p>
+                          <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{b.name} <span className="text-[10px] text-slate-400 font-bold ml-1">(Buyer)</span></p>
+                          <p className={`text-[10px] font-bold mt-0.5 ${copiedId === b.id ? 'text-green-600' : 'text-slate-400'}`}>
+                            {copiedId === b.id ? 'Copied to clipboard!' : 'Click to copy slip'}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-black text-primary">
+                        <div className="flex items-center gap-4">
+                          <span className={`text-sm font-black transition-colors ${copiedId === b.id ? 'text-green-700' : 'text-primary'}`}>
                             {formatCurrency(calculations.buyerExpenses.find(be => be.id === b.id)?.totalGovFees || 0)}
                           </span>
-                          <MessageSquare className="w-4 h-4 text-green-500 opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all" />
+                          <div className={`p-2 rounded-lg transition-all ${copiedId === b.id ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400 group-hover:bg-accent group-hover:text-white'}`}>
+                            {copiedId === b.id ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : <Copy className="w-3.5 h-3.5" />}
+                          </div>
                         </div>
                       </button>
                     ))}
                     {sellers.map(s => (
                       <button 
                         key={s.id}
-                        onClick={() => generateWhatsAppMessage('individual', s)}
-                        className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200 hover:border-green-500 group transition-all"
+                        onClick={() => copyIndividualSlip(s)}
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all group ${
+                          copiedId === s.id 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-slate-50 border-slate-200 hover:border-accent hover:bg-white active:scale-[0.98]'
+                        }`}
                       >
                         <div className="text-left">
-                          <p className="text-xs font-bold text-slate-700">{s.name} (Seller)</p>
-                          <p className="text-[10px] text-slate-400">Send slip via WhatsApp</p>
+                          <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{s.name} <span className="text-[10px] text-slate-400 font-bold ml-1">(Seller)</span></p>
+                          <p className={`text-[10px] font-bold mt-0.5 ${copiedId === s.id ? 'text-green-600' : 'text-slate-400'}`}>
+                            {copiedId === s.id ? 'Copied to clipboard!' : 'Click to copy slip'}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-black text-primary">
-                            {formatCurrency(calculations.sellerExpenses.find(se => se.id === s.id)?.wht236C || 0)}
+                        <div className="flex items-center gap-4">
+                          <span className={`text-sm font-black transition-colors ${copiedId === s.id ? 'text-green-700' : 'text-primary'}`}>
+                            {formatCurrency(((calculations.sellerExpenses.find(se => se.id === s.id)?.wht236C || 0) + (calculations.sellerExpenses.find(se => se.id === s.id)?.tax7E || 0)))}
                           </span>
-                          <MessageSquare className="w-4 h-4 text-green-500 opacity-0 group-hover:opacity-100 transform scale-0 group-hover:scale-100 transition-all" />
+                          <div className={`p-2 rounded-lg transition-all ${copiedId === s.id ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400 group-hover:bg-accent group-hover:text-white'}`}>
+                            {copiedId === s.id ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : <Copy className="w-3.5 h-3.5" />}
+                          </div>
                         </div>
                       </button>
                     ))}
