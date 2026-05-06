@@ -309,33 +309,55 @@ export default function App() {
 
   // Handlers
   const addBuyer = () => {
-    setBuyers([...buyers, { 
+    const newCount = buyers.length + 1;
+    const equalShare = Number((100 / newCount).toFixed(2));
+    
+    const redistributedBuyers = buyers.map(b => ({ ...b, share: equalShare }));
+    
+    setBuyers([...redistributedBuyers, { 
       id: Math.random().toString(36).substr(2, 9), 
-      name: `Buyer ${buyers.length + 1}`, 
+      name: `Buyer ${newCount}`, 
       contact: '', 
       filerStatus: 'Filer', 
       residentialStatus: 'Resident', 
-      share: 0 
+      share: equalShare 
     }]);
   };
 
   const removeBuyer = (id: string) => {
-    if (buyers.length > 1) setBuyers(buyers.filter(b => b.id !== id));
+    if (buyers.length > 1) {
+      const filteredBuyers = buyers.filter(b => b.id !== id);
+      const newCount = filteredBuyers.length;
+      const equalShare = Number((100 / newCount).toFixed(2));
+      
+      setBuyers(filteredBuyers.map(b => ({ ...b, share: equalShare })));
+    }
   };
 
   const addSeller = () => {
-    setSellers([...sellers, { 
+    const newCount = sellers.length + 1;
+    const equalShare = Number((100 / newCount).toFixed(2));
+    
+    const redistributedSellers = sellers.map(s => ({ ...s, share: equalShare }));
+
+    setSellers([...redistributedSellers, { 
       id: Math.random().toString(36).substr(2, 9), 
-      name: `Seller ${sellers.length + 1}`, 
+      name: `Seller ${newCount}`, 
       contact: '', 
       filerStatus: 'Filer', 
       residentialStatus: 'Resident', 
-      share: 0 
+      share: equalShare 
     }]);
   };
 
   const removeSeller = (id: string) => {
-    if (sellers.length > 1) setSellers(sellers.filter(s => s.id !== id));
+    if (sellers.length > 1) {
+      const filteredSellers = sellers.filter(s => s.id !== id);
+      const newCount = filteredSellers.length;
+      const equalShare = Number((100 / newCount).toFixed(2));
+      
+      setSellers(filteredSellers.map(s => ({ ...s, share: equalShare })));
+    }
   };
 
   const resetData = () => {
