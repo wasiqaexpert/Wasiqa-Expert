@@ -210,8 +210,8 @@ export default function App() {
       const mutationFee = 300;
       const plraMutationFee = 200;
       
-      // Building Plan Surcharge (2% if No Building Plan)
-      const buildingPlanSurcharge = ((property.type === 'Residential House' || property.type === 'Commercial Building') && !property.hasBuildingPlan) ? (shareValue * 0.02) : 0;
+      // Building Plan Surcharge (2% of DC Land Value if No Building Plan)
+      const buildingPlanSurcharge = ((property.type === 'Residential House' || property.type === 'Commercial Building') && !property.hasBuildingPlan) ? ((dcLandValue * share / 100) * 0.02) : 0;
 
       // Provincial Government Expenses Sum
       const totalProvincialExpenses = stampDuty + municipalCommitteeFee + regFee + borCharges + borOtherServiceCharges + mutationFee + plraCharges + plraMutationFee + buildingPlanSurcharge;
