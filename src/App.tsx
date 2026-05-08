@@ -41,7 +41,6 @@ interface Person {
   filerStatus: FilerStatus;
   residentialStatus: ResidentialStatus;
   share: number;
-  paid7E?: boolean;
 }
 
 interface PropertyDetails {
@@ -75,10 +74,10 @@ const formatCurrency = (amount: number) => {
 export default function App() {
   // State
   const [buyers, setBuyers] = useState<Person[]>([
-    { id: 'b1', name: 'Buyer 1', contact: '', filerStatus: 'Filer', residentialStatus: 'Resident', share: 100, paid7E: true }
+    { id: 'b1', name: 'Buyer 1', contact: '', filerStatus: 'Filer', residentialStatus: 'Resident', share: 100 }
   ]);
   const [sellers, setSellers] = useState<Person[]>([
-    { id: 's1', name: 'Seller 1', contact: '', filerStatus: 'Filer', residentialStatus: 'Resident', share: 100, paid7E: true }
+    { id: 's1', name: 'Seller 1', contact: '', filerStatus: 'Filer', residentialStatus: 'Resident', share: 100 }
   ]);
   const [property, setProperty] = useState<PropertyDetails>({
     category: 'Urban',
@@ -206,19 +205,18 @@ export default function App() {
       const regFee = shareValue < 500000 ? 500 : 1000;
       const borCharges = 100;
       const plraCharges = Math.max(3300, shareValue * 0.001);
-      const borOtherServiceCharges = 100;
       const mutationFee = 300;
       const plraMutationFee = 200;
       
       // Building Plan Surcharge (2% of DC Land Value if No Building Plan)
       const buildingPlanSurcharge = ((property.type === 'Residential House' || property.type === 'Commercial Building') && !property.hasBuildingPlan) ? ((dcLandValue * share / 100) * 0.02) : 0;
-
+ 
       // Provincial Government Expenses Sum
-      const totalProvincialExpenses = stampDuty + municipalCommitteeFee + regFee + borCharges + borOtherServiceCharges + mutationFee + plraCharges + plraMutationFee + buildingPlanSurcharge;
-
+      const totalProvincialExpenses = stampDuty + municipalCommitteeFee + regFee + borCharges + mutationFee + plraCharges + plraMutationFee + buildingPlanSurcharge;
+ 
       // Total Buyer Gov Fees (FBR + Provincial)
       const totalGovFees = wht236K + totalProvincialExpenses;
-
+ 
       return {
         ...buyer,
         shareValue,
@@ -230,7 +228,6 @@ export default function App() {
           regFee,
           borCharges,
           plraCharges,
-          borOtherServiceCharges,
           mutationFee,
           plraMutationFee,
           buildingPlanSurcharge
@@ -246,20 +243,19 @@ export default function App() {
 
       // 236C Withholding Tax (Seller)
       let whtRate = 0;
-      if (seller.filerStatus === 'Filer') whtRate = 0.045;
-      else if (seller.filerStatus === 'Late Filer') whtRate = 0.075;
-      else whtRate = 0.115;
+      if (seller.residentialStatus === 'Non-Resident') {
+        whtRate = 0.045; // Filer rate for non-residents
+      } else {
+        if (seller.filerStatus === 'Filer') whtRate = 0.045;
+        else if (seller.filerStatus === 'Late Filer') whtRate = 0.075;
+        else whtRate = 0.115;
+      }
       const wht236C = shareValue * whtRate;
-
-      // 7E Tax
-      const tax7ERate = seller.paid7E ? 0 : 0.01;
-      const tax7E = shareValue * tax7ERate;
       
       return {
         ...seller,
         shareValue,
-        wht236C,
-        tax7E
+        wht236C
       };
     });
 
@@ -277,7 +273,6 @@ export default function App() {
       regFee: buyerExpenses.reduce((a, b) => a + (b.govFees.regFee || 0), 0),
       borCharges: buyerExpenses.reduce((a, b) => a + (b.govFees.borCharges || 0), 0),
       plraCharges: buyerExpenses.reduce((a, b) => a + (b.govFees.plraCharges || 0), 0),
-      borOtherServiceCharges: buyerExpenses.reduce((a, b) => a + (b.govFees.borOtherServiceCharges || 0), 0),
       mutationFee: buyerExpenses.reduce((a, b) => a + (b.govFees.mutationFee || 0), 0),
       plraMutationFee: buyerExpenses.reduce((a, b) => a + (b.govFees.plraMutationFee || 0), 0),
       buildingPlanSurcharge: buyerExpenses.reduce((a, b) => a + (b.govFees.buildingPlanSurcharge || 0), 0)
@@ -285,7 +280,7 @@ export default function App() {
 
     // Totals
     const totalBuyerExpenses = buyerExpenses.reduce((acc, curr) => acc + (curr.totalGovFees || 0), 0);
-    const totalSellerExpenses = sellerExpenses.reduce((acc, curr) => acc + (curr.wht236C || 0) + (curr.tax7E || 0), 0);
+    const totalSellerExpenses = sellerExpenses.reduce((acc, curr) => acc + (curr.wht236C || 0), 0);
     const grandTotal = (totalBuyerExpenses || 0) + (totalSellerExpenses || 0) + (totalOtherExpenses || 0);
 
     return {
@@ -394,7 +389,7 @@ export default function App() {
       amount = calculations.buyerExpenses.find(b => b.id === person.id)?.totalGovFees || 0;
     } else {
       const s = calculations.sellerExpenses.find(s => s.id === person.id);
-      amount = (s?.wht236C || 0) + (s?.tax7E || 0);
+      amount = (s?.wht236C || 0);
     }
     
     const msg = `Dear Mr. / Mrs. ${person.name},\n\nYour individual share for the registry expenses is: *${formatCurrency(amount)}*.\n\nRegards, Wasiqa Expert\nThank you for trusting us.`;
@@ -514,11 +509,6 @@ export default function App() {
                 <td className="p-3 border border-slate-200">Stamp Duty & Provincial Taxes</td>
                 <td className="p-3 border border-slate-200">Buyer(s)</td>
                 <td className="p-3 border border-slate-200 text-right font-medium">{formatCurrency(calculations.buyerExpenses.reduce((a, b) => a + b.totalProvincialExpenses, 0))}</td>
-              </tr>
-              <tr>
-                <td className="p-3 border border-slate-200">7E Asset Tax</td>
-                <td className="p-3 border border-slate-200">Seller(s)</td>
-                <td className="p-3 border border-slate-200 text-right font-medium">{formatCurrency(calculations.sellerExpenses.reduce((a, b) => a + b.tax7E, 0))}</td>
               </tr>
               <tr className="bg-slate-50">
                 <td className="p-3 border border-slate-200 italic">Legal, Drafting & Services</td>
@@ -708,18 +698,18 @@ export default function App() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">7E Tax Applicable?</label>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Residential Status</label>
                       <select 
-                        value={seller.paid7E ? 'Yes' : 'No'}
+                        value={seller.residentialStatus}
                         onChange={(e) => {
                           const newSellers = [...sellers];
-                          newSellers[index].paid7E = e.target.value === 'Yes';
+                          newSellers[index].residentialStatus = e.target.value as ResidentialStatus;
                           setSellers(newSellers);
                         }}
                         className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-sm appearance-none cursor-pointer"
                       >
-                        <option value="Yes">Yes (Already Paid)</option>
-                        <option value="No">No (Pay Now - 1%)</option>
+                        <option value="Resident">Resident</option>
+                        <option value="Non-Resident">Non-Resident</option>
                       </select>
                     </div>
                   </div>
@@ -1031,12 +1021,6 @@ export default function App() {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm py-1">
-                      <span className="text-slate-500 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent"></div> 7E Tax (Seller)</span>
-                      <span className="font-semibold text-slate-700">
-                        {formatCurrency(calculations.sellerExpenses.reduce((a, b) => a + b.tax7E, 0))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent"></div> Provincial Govt. Expenses</span>
                       <span className="font-semibold text-slate-700">
                         {formatCurrency(calculations.buyerExpenses.reduce((a, b) => a + b.totalProvincialExpenses, 0))}
@@ -1062,10 +1046,6 @@ export default function App() {
                       <div className="flex justify-between text-[11px] text-slate-400">
                         <span>BOR Charges</span>
                         <span>{formatCurrency(calculations.provBreakdown.borCharges)}</span>
-                      </div>
-                      <div className="flex justify-between text-[11px] text-slate-400">
-                        <span>BOR Other Service Charges</span>
-                        <span>{formatCurrency(calculations.provBreakdown.borOtherServiceCharges)}</span>
                       </div>
                       <div className="flex justify-between text-[11px] text-slate-400">
                         <span>Mutation Fee</span>
@@ -1184,7 +1164,7 @@ export default function App() {
                         </div>
                         <div className="flex items-center gap-4">
                           <span className={`text-sm font-black transition-colors ${copiedId === s.id ? 'text-green-700' : 'text-primary'}`}>
-                            {formatCurrency(((calculations.sellerExpenses.find(se => se.id === s.id)?.wht236C || 0) + (calculations.sellerExpenses.find(se => se.id === s.id)?.tax7E || 0)))}
+                            {formatCurrency(calculations.sellerExpenses.find(se => se.id === s.id)?.wht236C || 0)}
                           </span>
                           <div className={`p-2 rounded-lg transition-all ${copiedId === s.id ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400 group-hover:bg-accent group-hover:text-white'}`}>
                             {copiedId === s.id ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : <Copy className="w-3.5 h-3.5" />}
