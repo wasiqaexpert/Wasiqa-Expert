@@ -410,8 +410,8 @@ export default function App() {
               <Landmark className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Registry Expense Estimator</h1>
-              <p className="text-xs text-slate-400 font-medium opacity-80 uppercase tracking-widest">Wasiqa Expert Professional Tool</p>
+              <h1 className="text-xl font-bold tracking-tight">Registry Estimator</h1>
+              <p className="text-xs text-slate-400 font-medium opacity-80 uppercase tracking-widest">Estimate Property Registration Expenses in Punjab</p>
             </div>
           </div>
           <div className="flex gap-3">
